@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>우주 탐사 퀴즈</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f5f7ff;
+      --panel: #ffffff;
+      --text: #111827;
+      --muted: #4b5563;
+      --primary: #4f46e5;
+      --primary-strong: #4338ca;
+      --correct: #15803d;
+      --incorrect: #b91c1c;
+      --border: #d1d5db;
+      --shadow: 0 10px 30px rgba(31, 41, 55, 0.15);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0b1021;
+        --panel: #111938;
+        --text: #f3f4f6;
+        --muted: #c4c8d4;
+        --primary: #818cf8;
+        --primary-strong: #6366f1;
+        --correct: #22c55e;
+        --incorrect: #ef4444;
+        --border: #344155;
+        --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+      }
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", "Noto Sans KR", system-ui, sans-serif;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.22), transparent 40%),
+        radial-gradient(circle at 80% 10%, rgba(16, 185, 129, 0.15), transparent 35%),
+        radial-gradient(circle at 60% 80%, rgba(244, 63, 94, 0.12), transparent 35%),
+        var(--bg);
+      color: var(--text);
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    .quiz {
+      width: min(760px, 100%);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      padding: 24px;
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      font-size: clamp(1.35rem, 2.2vw, 1.8rem);
+    }
+
+    .subtitle {
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .status {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .status-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 14px;
+      border-radius: 999px;
+      background: rgba(99, 102, 241, 0.2);
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #06b6d4, #6366f1, #a855f7);
+      transition: width 280ms ease;
+    }
+
+    .card {
+      margin-top: 8px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+      background: color-mix(in oklab, var(--panel) 86%, var(--primary) 14%);
+      outline: none;
+    }
+
+    .question {
+      margin: 0 0 14px;
+      line-height: 1.5;
+      font-size: 1.08rem;
+    }
+
+    .options {
+      display: grid;
+      gap: 10px;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .option-btn {
+      width: 100%;
+      text-align: left;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-size: 0.98rem;
+      cursor: pointer;
+      transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+    }
+
+    .option-btn:hover,
+    .option-btn:focus-visible {
+      border-color: var(--primary);
+      transform: translateY(-1px);
+    }
+
+    .option-btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.9;
+    }
+
+    .option-btn.correct {
+      border-color: var(--correct);
+      background: color-mix(in oklab, var(--correct) 20%, var(--panel) 80%);
+    }
+
+    .option-btn.incorrect {
+      border-color: var(--incorrect);
+      background: color-mix(in oklab, var(--incorrect) 20%, var(--panel) 80%);
+    }
+
+    .controls {
+      margin-top: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    #feedback {
+      min-height: 1.5em;
+      font-weight: 700;
+      margin: 0;
+    }
+
+    .feedback-correct { color: var(--correct); }
+    .feedback-incorrect { color: var(--incorrect); }
+
+    .next-btn, .restart-btn {
+      border: none;
+      border-radius: 12px;
+      background: var(--primary);
+      color: white;
+      padding: 11px 16px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .next-btn:hover,
+    .next-btn:focus-visible,
+    .restart-btn:hover,
+    .restart-btn:focus-visible {
+      background: var(--primary-strong);
+    }
+
+    .next-btn[hidden] { display: none; }
+
+    .result {
+      text-align: center;
+      padding: 16px 8px 8px;
+    }
+
+    .emoji {
+      font-size: 5rem;
+      line-height: 1;
+      margin-bottom: 10px;
+    }
+
+    .hidden { display: none; }
+
+    .animate-correct {
+      animation: correctFlash 600ms ease;
+    }
+
+    .animate-incorrect {
+      animation: wrongShake 520ms ease;
+    }
+
+    @keyframes correctFlash {
+      0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.9); transform: scale(1); }
+      50% { box-shadow: 0 0 0 12px rgba(34, 197, 94, 0.16); transform: scale(1.01); }
+      100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); transform: scale(1); }
+    }
+
+    @keyframes wrongShake {
+      0%, 100% { transform: translateX(0); background: color-mix(in oklab, var(--incorrect) 0%, var(--panel) 100%); }
+      20% { transform: translateX(-8px); }
+      40% { transform: translateX(8px); }
+      60% { transform: translateX(-6px); }
+      80% { transform: translateX(6px); background: color-mix(in oklab, var(--incorrect) 18%, var(--panel) 82%); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation-duration: 1ms !important;
+        transition-duration: 1ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="quiz" aria-labelledby="quiz-title">
+    <h1 id="quiz-title">🚀 우주 탐사 퀴즈</h1>
+    <p class="subtitle">키보드만으로 풀 수 있어요. 보기 버튼으로 이동(Tab) 후 Enter/Space로 선택하세요.</p>
+
+    <section id="quiz-screen">
+      <div class="status">
+        <div class="status-line">
+          <span id="progress-text" aria-live="polite">문항 1 / 10</span>
+          <span id="score-counter" aria-live="polite">점수: 0</span>
+        </div>
+        <div class="progress-track" role="progressbar" aria-label="퀴즈 진행률" aria-valuemin="0" aria-valuemax="100" aria-valuenow="10">
+          <div id="progress-fill" class="progress-fill"></div>
+        </div>
+      </div>
+
+      <article id="question-card" class="card" tabindex="-1">
+        <h2 id="question-text" class="question"></h2>
+        <ul id="options" class="options"></ul>
+        <div class="controls">
+          <p id="feedback" aria-live="assertive"></p>
+          <button id="next-btn" class="next-btn" type="button" hidden>다음 문항</button>
+        </div>
+      </article>
+    </section>
+
+    <section id="result-screen" class="result hidden" aria-live="polite">
+      <div id="result-emoji" class="emoji" aria-hidden="true">🌟</div>
+      <h2 id="result-title">결과</h2>
+      <p id="result-summary"></p>
+      <button id="restart-btn" class="restart-btn" type="button">다시 도전하기</button>
+    </section>
+  </main>
+
+  <script>
+    const questions = [
+      { q: "인류가 처음으로 달에 착륙한 임무는 무엇인가요?", choices: ["아폴로 8호", "아폴로 11호", "보이저 1호", "제미니 4호"], answer: 1 },
+      { q: "화성의 가장 큰 화산 이름은?", choices: ["마운트 케냐", "올림푸스 몬스", "베수비오", "마우나로아"], answer: 1 },
+      { q: "태양계에서 고리가 가장 뚜렷한 행성은?", choices: ["토성", "지구", "수성", "금성"], answer: 0 },
+      { q: "지구에서 가장 가까운 항성은 태양을 제외하면?", choices: ["시리우스", "프로키온", "알파 센타우리", "베가"], answer: 2 },
+      { q: "국제우주정거장(ISS)의 주된 목적은?", choices: ["상업용 관광", "우주 군사 기지", "우주 환경 연구", "달 채굴"], answer: 2 },
+      { q: "허블 우주망원경은 주로 무엇을 관측하나요?", choices: ["심해 생물", "대기 오염", "우주 천체", "지하 자원"], answer: 2 },
+      { q: "로버 '큐리오시티'가 탐사한 행성은?", choices: ["목성", "화성", "토성", "수성"], answer: 1 },
+      { q: "별이 에너지를 내는 핵심 과정은?", choices: ["핵융합", "핵분열", "연소", "증발"], answer: 0 },
+      { q: "우주비행사가 우주 유영 시 반드시 착용하는 것은?", choices: ["잠수복", "우주복", "방화복", "방진복"], answer: 1 },
+      { q: "빛이 1년 동안 가는 거리를 뜻하는 단위는?", choices: ["천문단위", "파섹", "광년", "킬로미터"], answer: 2 }
+    ];
+
+    const quizScreen = document.getElementById("quiz-screen");
+    const resultScreen = document.getElementById("result-screen");
+    const questionText = document.getElementById("question-text");
+    const optionsList = document.getElementById("options");
+    const progressText = document.getElementById("progress-text");
+    const scoreCounter = document.getElementById("score-counter");
+    const progressFill = document.getElementById("progress-fill");
+    const progressTrack = progressFill.parentElement;
+    const feedback = document.getElementById("feedback");
+    const nextBtn = document.getElementById("next-btn");
+    const questionCard = document.getElementById("question-card");
+    const resultEmoji = document.getElementById("result-emoji");
+    const resultTitle = document.getElementById("result-title");
+    const resultSummary = document.getElementById("result-summary");
+    const restartBtn = document.getElementById("restart-btn");
+
+    let current = 0;
+    let score = 0;
+    let answered = false;
+
+    function animateResultScore(finalScore, maxScore) {
+      const duration = 1200;
+      const start = performance.now();
+
+      function frame(now) {
+        const elapsed = now - start;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const value = Math.round(finalScore * eased);
+        resultSummary.textContent = `총점 ${value}점 / ${maxScore}점`;
+        if (progress < 1) requestAnimationFrame(frame);
+      }
+
+      requestAnimationFrame(frame);
+    }
+
+    function renderQuestion() {
+      const item = questions[current];
+      const step = current + 1;
+      const progress = Math.round((step / questions.length) * 100);
+
+      progressText.textContent = `문항 ${step} / ${questions.length}`;
+      scoreCounter.textContent = `점수: ${score}`;
+      progressFill.style.width = `${progress}%`;
+      progressTrack.setAttribute("aria-valuenow", String(progress));
+
+      questionText.textContent = item.q;
+      optionsList.innerHTML = "";
+      feedback.textContent = "";
+      feedback.className = "";
+      nextBtn.hidden = true;
+      answered = false;
+
+      item.choices.forEach((choice, index) => {
+        const li = document.createElement("li");
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "option-btn";
+        btn.innerHTML = `<strong>${index + 1}.</strong> ${choice}`;
+        btn.setAttribute("aria-label", `${index + 1}번 보기: ${choice}`);
+        btn.addEventListener("click", () => handleAnswer(index, btn));
+        li.appendChild(btn);
+        optionsList.appendChild(li);
+      });
+
+      const firstOption = optionsList.querySelector(".option-btn");
+      if (firstOption) firstOption.focus();
+    }
+
+    function handleAnswer(selected, selectedButton) {
+      if (answered) return;
+      answered = true;
+
+      const correctIndex = questions[current].answer;
+      const buttons = [...optionsList.querySelectorAll(".option-btn")];
+      buttons.forEach(btn => (btn.disabled = true));
+
+      const isCorrect = selected === correctIndex;
+      const correctButton = buttons[correctIndex];
+      correctButton.classList.add("correct");
+
+      questionCard.classList.remove("animate-correct", "animate-incorrect");
+      void questionCard.offsetWidth;
+
+      if (isCorrect) {
+        score += 10;
+        scoreCounter.textContent = `점수: ${score}`;
+        feedback.textContent = "정답입니다! 👏";
+        feedback.className = "feedback-correct";
+        questionCard.classList.add("animate-correct");
+      } else {
+        selectedButton.classList.add("incorrect");
+        feedback.textContent = `오답입니다. 정답은 "${questions[current].choices[correctIndex]}"`;
+        feedback.className = "feedback-incorrect";
+        questionCard.classList.add("animate-incorrect");
+      }
+
+      nextBtn.hidden = false;
+      nextBtn.textContent = current === questions.length - 1 ? "결과 보기" : "다음 문항";
+      nextBtn.focus();
+    }
+
+    function showResult() {
+      quizScreen.classList.add("hidden");
+      resultScreen.classList.remove("hidden");
+
+      const max = questions.length * 10;
+      const ratio = score / max;
+      let emoji = "🌍";
+      let title = "계속 도전해요!";
+      if (ratio === 1) {
+        emoji = "🏆";
+        title = "완벽해요! 우주 마스터!";
+      } else if (ratio >= 0.8) {
+        emoji = "🌟";
+        title = "훌륭해요! 우주 전문가!";
+      } else if (ratio >= 0.5) {
+        emoji = "🚀";
+        title = "좋아요! 탐사 실력이 늘고 있어요!";
+      } else {
+        emoji = "🛰️";
+        title = "기초를 다지고 다시 출발!";
+      }
+
+      resultEmoji.textContent = emoji;
+      resultTitle.textContent = title;
+      animateResultScore(score, max);
+      restartBtn.focus();
+    }
+
+    function nextStep() {
+      if (!answered) return;
+      if (current < questions.length - 1) {
+        current += 1;
+        renderQuestion();
+      } else {
+        showResult();
+      }
+    }
+
+    function restartQuiz() {
+      current = 0;
+      score = 0;
+      answered = false;
+      resultScreen.classList.add("hidden");
+      quizScreen.classList.remove("hidden");
+      renderQuestion();
+    }
+
+    nextBtn.addEventListener("click", nextStep);
+    restartBtn.addEventListener("click", restartQuiz);
+
+    document.addEventListener("keydown", (event) => {
+      if (resultScreen.classList.contains("hidden")) {
+        if (!answered && /^[1-4]$/.test(event.key)) {
+          const index = Number(event.key) - 1;
+          const btn = optionsList.querySelectorAll(".option-btn")[index];
+          if (btn) btn.click();
+        } else if (answered && (event.key === "Enter" || event.key === " ")) {
+          const active = document.activeElement;
+          if (active === nextBtn) return;
+          event.preventDefault();
+          nextBtn.click();
+        }
+      } else if (event.key === "Enter" || event.key === " ") {
+        const active = document.activeElement;
+        if (active !== restartBtn) return;
+        event.preventDefault();
+        restartBtn.click();
+      }
+    });
+
+    renderQuestion();
+  </script>
+</body>
+</html>
